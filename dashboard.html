@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1115">
+<meta name="robots" content="noindex, nofollow">
+<title>Dashboard | Mamunur Rashid Admin</title>
+<link rel="icon" type="image/png" href="../Mamunur-Rashid.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div id="loading-screen" class="auth-wrap">
+  <div class="auth-card center">
+    <div class="auth-logo"><div class="brand">Mamunur Rashid</div><div class="sub">Loading admin panel...</div></div>
+    <div style="display:flex;justify-content:center;padding:1rem"><span class="spinner"></span></div>
+  </div>
+</div>
+
+<div id="dash" class="dash hidden">
+  <aside class="sidebar">
+    <div class="brand">Admin Panel</div>
+    <ul class="nav-list">
+      <li><a href="#hero" class="nav-link active" data-section="hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
+        Hero
+      </a></li>
+      <li><a href="#about" class="nav-link" data-section="about">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+        About
+      </a></li>
+      <li><a href="#services" class="nav-link" data-section="services">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Services
+      </a></li>
+      <li><a href="#portfolio" class="nav-link" data-section="portfolio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+        Portfolio
+      </a></li>
+      <li><a href="#whyme" class="nav-link" data-section="whyme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 15 9l7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>
+        Why Me
+      </a></li>
+      <li><a href="#contact" class="nav-link" data-section="contact">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+        Contact
+      </a></li>
+    </ul>
+    <div class="sidebar-bottom">
+      <div class="who" id="who-am-i">—</div>
+      <button class="btn btn-secondary btn-sm btn-block" id="logout-btn">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <h1 id="section-title">Hero Section</h1>
+      <div class="actions">
+        <a href="../index.html" target="_blank" class="btn btn-secondary btn-sm">View site &nearr;</a>
+        <button class="btn btn-primary btn-sm" id="save-all-btn">Save all changes</button>
+      </div>
+    </div>
+    <div id="alert" class="alert hidden"></div>
+
+    <!-- HERO SECTION -->
+    <div class="section active" data-section="hero">
+      <div class="panel">
+        <h2>Hero Banner</h2>
+        <p class="help">The first thing visitors see. Keep it punchy.</p>
+        <div class="grid grid-2">
+          <div class="field"><label>Badge text</label><input class="input" id="hero-badge" placeholder="Available for new projects"></div>
+          <div class="field"><label>Title</label><input class="input" id="hero-title" placeholder="Hi, I'm Mamunur Rashid"></div>
+          <div class="field"><label>Subtitle</label><input class="input" id="hero-subtitle" placeholder="Digital Growth Expert"></div>
+          <div class="field"><label>Skills line</label><input class="input" id="hero-skills" placeholder="Web Dev • Shopify • AI Automation"></div>
+        </div>
+        <h3 style="margin-top:1rem;font-size:.95rem;color:var(--gold)">Stats</h3>
+        <div class="grid grid-stats" id="hero-stats">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ABOUT SECTION -->
+    <div class="section" data-section="about">
+      <div class="panel">
+        <h2>About Section</h2>
+        <div class="field"><label>Section label</label><input class="input" id="about-label" placeholder="About Me"></div>
+        <div class="field"><label>Title</label><input class="input" id="about-title" placeholder="Turning Digital Challenges into Growth Opportunities"></div>
+        <div class="field"><label>Paragraph 1</label><textarea class="textarea" id="about-p1"></textarea></div>
+        <div class="field"><label>Paragraph 2</label><textarea class="textarea" id="about-p2"></textarea></div>
+        <div class="field"><label>Profile image URL</label><input class="input" id="about-image" placeholder="Mamunur-Rashid.png or full https URL"></div>
+      </div>
+      <div class="panel">
+        <h2>Highlights (3 items)</h2>
+        <div id="about-highlights"></div>
+      </div>
+    </div>
+
+    <!-- SERVICES SECTION -->
+    <div class="section" data-section="services">
+      <div class="panel">
+        <div class="row between">
+          <h2 style="margin:0">Services</h2>
+          <button class="btn btn-primary btn-sm" id="add-service-btn">+ Add service</button>
+        </div>
+        <p class="help">Drag/edit service cards displayed on the homepage.</p>
+        <div class="grid grid-2" id="services-list"></div>
+      </div>
+    </div>
+
+    <!-- PORTFOLIO SECTION -->
+    <div class="section" data-section="portfolio">
+      <div class="panel">
+        <div class="row between">
+          <h2 style="margin:0">Portfolio Projects</h2>
+          <button class="btn btn-primary btn-sm" id="add-project-btn">+ Add project</button>
+        </div>
+        <p class="help">Each project gets its own detail page. Title, image, description, features, and results.</p>
+        <div class="grid grid-2" id="portfolio-list"></div>
+      </div>
+    </div>
+
+    <!-- WHY ME SECTION -->
+    <div class="section" data-section="whyme">
+      <div class="panel">
+        <h2>Why Choose Me</h2>
+        <div class="field"><label>Section label</label><input class="input" id="why-label" placeholder="Why Choose Me"></div>
+        <div class="field"><label>Title</label><input class="input" id="why-title"></div>
+        <div class="field"><label>Subtitle</label><input class="input" id="why-subtitle"></div>
+        <div class="field"><label>CTA Heading</label><input class="input" id="why-cta-heading"></div>
+        <div class="field"><label>CTA Subtext</label><input class="input" id="why-cta-subtext"></div>
+      </div>
+      <div class="panel">
+        <div class="row between">
+          <h2 style="margin:0">Reason cards (3)</h2>
+        </div>
+        <div id="why-reasons"></div>
+      </div>
+    </div>
+
+    <!-- CONTACT SECTION -->
+    <div class="section" data-section="contact">
+      <div class="panel">
+        <h2>Contact Information</h2>
+        <div class="grid grid-2">
+          <div class="field"><label>Email (publicly shown)</label><input class="input" id="contact-email" type="email"></div>
+          <div class="field"><label>Phone / WhatsApp</label><input class="input" id="contact-phone"></div>
+          <div class="field"><label>Location</label><input class="input" id="contact-location"></div>
+          <div class="field"><label>WhatsApp link (wa.me/...)</label><input class="input" id="contact-whatsapp"></div>
+          <div class="field"><label>LinkedIn URL</label><input class="input" id="contact-linkedin"></div>
+          <div class="field"><label>Facebook URL</label><input class="input" id="contact-facebook"></div>
+          <div class="field"><label>Instagram URL</label><input class="input" id="contact-instagram"></div>
+          <div class="field"><label>GitHub URL</label><input class="input" id="contact-github"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Edit drawer for services / portfolio / reasons -->
+<div class="drawer-back" id="drawer-back"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <h2 id="drawer-title">Edit item</h2>
+  <div id="drawer-body"></div>
+  <div class="drawer-actions">
+    <button class="btn btn-secondary" id="drawer-cancel">Cancel</button>
+    <button class="btn btn-danger" id="drawer-delete">Delete</button>
+    <button class="btn btn-primary" id="drawer-save">Save</button>
+  </div>
+</aside>
+
+<script type="module" src="admin.js"></script>
+</body>
+</html>
