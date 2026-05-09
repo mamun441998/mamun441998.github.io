@@ -1,0 +1,23 @@
+# robots.txt for https://mamun441998.github.io/
+# Mamunur Rashid - Digital Growth Expert Portfolio
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /404.html
+
+# Block common scraper / SEO-spam bots (optional)
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Sitemap location
+Sitemap: https://mamun441998.github.io/sitemap.xml
