@@ -20,7 +20,7 @@ const DEFAULTS = {
     subtitle: "Digital Growth Expert",
     skills: "Web Development • Shopify Expert • AI Automation • Meta & Google Ads",
     stats: [
-      { value: "5+", label: "Years Experience" },
+      { value: "2+", label: "Years Experience" },
       { value: "100+", label: "Projects Completed" },
       { value: "50+", label: "Happy Clients" },
       { value: "99%", label: "Client Satisfaction" }
