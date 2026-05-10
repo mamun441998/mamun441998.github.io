@@ -4,8 +4,18 @@
 */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAIL } from "./firebase-config.js";
+
+// Optional EmailJS integration. Fill these in to actually deliver replies via email.
+// Sign up at https://www.emailjs.com (free tier) → create a service + template, then paste the IDs below.
+// While these are blank, the chat panel still works and saves replies to Firestore;
+// the "Open in Mail" button gives you a one-click mailto fallback.
+const EMAILJS_CONFIG = {
+  publicKey: "",      // e.g. "abc123XYZ"
+  serviceId: "",      // e.g. "service_xxxx"
+  templateId: ""      // e.g. "template_xxxx" — template should accept {{to_email}}, {{to_name}}, {{reply_message}}, {{from_name}}
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -182,6 +192,13 @@ function initActions(){
   $('add-project-btn').addEventListener('click', () => openProjectDrawer(null));
   $('drawer-cancel').addEventListener('click', closeDrawer);
   $('drawer-back').addEventListener('click', closeDrawer);
+
+  $('chat-close').addEventListener('click', closeChatPanel);
+  $('chat-back').addEventListener('click', closeChatPanel);
+  $('chat-composer').addEventListener('submit', (e) => { e.preventDefault(); sendReply(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('chat-panel').classList.contains('open')) closeChatPanel();
+  });
 }
 
 // -------- RENDERERS --------
@@ -448,20 +465,22 @@ function renderMessages(){
 
   list.innerHTML = cachedMessages.map(m => {
     const when = formatMessageDate(m.createdAt);
-    const safeEmail = escapeAttr(m.email || '');
-    const subject = encodeURIComponent('Re: your message on Mamunur Rashid portfolio');
+    const replyCount = Number(m.replyCount || 0);
+    const replyBadge = replyCount > 0
+      ? `<span class="reply-count">💬 <strong>${replyCount}</strong> repl${replyCount === 1 ? 'y' : 'ies'}</span>`
+      : '';
     return `
       <div class="message-card ${m.read ? '' : 'unread'}">
         <div class="message-head">
           <div>
-            <div class="message-name">${escapeHtml(m.name || '(no name)')}</div>
-            <div class="message-email"><a href="mailto:${safeEmail}?subject=${subject}">${escapeHtml(m.email || '')}</a></div>
+            <div class="message-name">${escapeHtml(m.name || '(no name)')} ${replyBadge}</div>
+            <div class="message-email">${escapeHtml(m.email || '')}</div>
           </div>
           <div class="message-date">${escapeHtml(when)}</div>
         </div>
         <div class="message-body">${escapeHtml(m.message || '')}</div>
         <div class="message-actions">
-          <a class="btn btn-primary btn-sm" href="mailto:${safeEmail}?subject=${subject}">Reply</a>
+          <button class="btn btn-primary btn-sm" data-reply-message="${m.id}">Reply</button>
           ${m.read
             ? `<button class="btn btn-secondary btn-sm" data-mark-unread="${m.id}">Mark as unread</button>`
             : `<button class="btn btn-secondary btn-sm" data-mark-read="${m.id}">Mark as read</button>`}
@@ -470,6 +489,7 @@ function renderMessages(){
       </div>`;
   }).join('');
 
+  list.querySelectorAll('[data-reply-message]').forEach(b => b.addEventListener('click', () => openChatPanel(b.dataset.replyMessage)));
   list.querySelectorAll('[data-mark-read]').forEach(b => b.addEventListener('click', () => setMessageRead(b.dataset.markRead, true)));
   list.querySelectorAll('[data-mark-unread]').forEach(b => b.addEventListener('click', () => setMessageRead(b.dataset.markUnread, false)));
   list.querySelectorAll('[data-delete-message]').forEach(b => b.addEventListener('click', () => deleteMessage(b.dataset.deleteMessage)));
@@ -510,6 +530,203 @@ document.addEventListener('click', (e) => {
   setTimeout(() => {
     cachedMessages.filter(m => !m.read).forEach(m => setMessageRead(m.id, true));
   }, 1500);
+});
+
+// -------- CHAT PANEL (reply to a message in a chat-style thread) --------
+let activeChatId = null;
+let threadUnsub = null;
+let cachedThread = [];
+let emailjsReady = false;
+
+function openChatPanel(messageId){
+  const m = cachedMessages.find(x => x.id === messageId);
+  if (!m) return;
+  activeChatId = messageId;
+
+  const initials = (m.name || m.email || '?').trim().charAt(0).toUpperCase() || '?';
+  $('chat-avatar').textContent = initials;
+  $('chat-title').textContent = m.name || '(no name)';
+  const emailLink = $('chat-email');
+  emailLink.textContent = m.email || '';
+  emailLink.href = m.email ? ('mailto:' + m.email) : '#';
+
+  $('chat-status').textContent = '';
+  $('chat-status').className = 'chat-status muted';
+  $('chat-input').value = '';
+  $('chat-thread').innerHTML = '<div class="chat-empty">Loading conversation…</div>';
+
+  $('chat-panel').classList.add('open');
+  $('chat-back').classList.add('open');
+  $('chat-panel').setAttribute('aria-hidden', 'false');
+
+  // Mark as read when opened
+  if (!m.read) setMessageRead(messageId, true);
+
+  // Subscribe to the reply thread (subcollection)
+  if (threadUnsub) { threadUnsub(); threadUnsub = null; }
+  try {
+    const q = query(collection(db, 'messages', messageId, 'replies'), orderBy('createdAt', 'asc'));
+    threadUnsub = onSnapshot(q, (snap) => {
+      cachedThread = [];
+      snap.forEach(d => cachedThread.push({ id: d.id, ...d.data() }));
+      renderChatThread(m);
+    }, (err) => {
+      console.error('thread onSnapshot error:', err);
+      renderChatThread(m); // still show the original message
+      $('chat-status').textContent = 'Could not load reply history (check Firestore rules).';
+      $('chat-status').className = 'chat-status error';
+    });
+  } catch (e) {
+    console.error(e);
+    renderChatThread(m);
+  }
+
+  setTimeout(() => $('chat-input').focus(), 250);
+}
+
+function closeChatPanel(){
+  $('chat-panel').classList.remove('open');
+  $('chat-back').classList.remove('open');
+  $('chat-panel').setAttribute('aria-hidden', 'true');
+  if (threadUnsub) { threadUnsub(); threadUnsub = null; }
+  activeChatId = null;
+  cachedThread = [];
+}
+
+function renderChatThread(originalMessage){
+  const wrap = $('chat-thread');
+  const parts = [];
+
+  // Original message from visitor (first bubble)
+  parts.push(`
+    <div class="chat-bubble from-user">
+      ${escapeHtml(originalMessage.message || '')}
+      <div class="bubble-meta">${escapeHtml(originalMessage.name || 'Visitor')} • ${escapeHtml(formatMessageDate(originalMessage.createdAt))}</div>
+    </div>`);
+
+  // Each reply
+  cachedThread.forEach(r => {
+    const side = r.from === 'admin' ? 'from-admin' : 'from-user';
+    const who = r.from === 'admin' ? 'You' : (originalMessage.name || 'Visitor');
+    const sentNote = r.from === 'admin'
+      ? (r.delivered === true ? ' • sent' : (r.delivered === false ? ' • not delivered' : ''))
+      : '';
+    parts.push(`
+      <div class="chat-bubble ${side}">
+        ${escapeHtml(r.text || '')}
+        <div class="bubble-meta">${escapeHtml(who)} • ${escapeHtml(formatMessageDate(r.createdAt))}${escapeHtml(sentNote)}</div>
+      </div>`);
+  });
+
+  wrap.innerHTML = parts.join('');
+  wrap.scrollTop = wrap.scrollHeight;
+
+  // Update mailto fallback link with the latest text
+  updateMailtoLink(originalMessage);
+}
+
+function updateMailtoLink(originalMessage){
+  const body = $('chat-input').value || '';
+  const subject = encodeURIComponent('Re: your message on Mamunur Rashid portfolio');
+  const bodyEnc = encodeURIComponent(body + '\n\n---\nOn ' + formatMessageDate(originalMessage.createdAt) + ', ' + (originalMessage.name || 'you') + ' wrote:\n> ' + (originalMessage.message || '').replace(/\n/g, '\n> '));
+  const to = originalMessage.email || '';
+  $('chat-mailto').href = to ? ('mailto:' + to + '?subject=' + subject + '&body=' + bodyEnc) : '#';
+}
+
+async function sendReply(){
+  if (!activeChatId) return;
+  const m = cachedMessages.find(x => x.id === activeChatId);
+  if (!m) return;
+  const text = $('chat-input').value.trim();
+  if (!text) return;
+
+  const sendBtn = $('chat-send');
+  const status = $('chat-status');
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Sending…';
+  status.textContent = '';
+  status.className = 'chat-status muted';
+
+  // Try delivering by email first (EmailJS, if configured)
+  let delivered = null; // null = not attempted, true/false otherwise
+  if (EMAILJS_CONFIG.publicKey && EMAILJS_CONFIG.serviceId && EMAILJS_CONFIG.templateId) {
+    try {
+      await ensureEmailJsLoaded();
+      await window.emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        to_email: m.email,
+        to_name: m.name || '',
+        from_name: 'Mamunur Rashid',
+        reply_message: text,
+        original_message: m.message || ''
+      });
+      delivered = true;
+    } catch (e) {
+      console.error('EmailJS send failed:', e);
+      delivered = false;
+    }
+  }
+
+  // Save the reply to Firestore so the conversation is preserved
+  try {
+    await addDoc(collection(db, 'messages', activeChatId, 'replies'), {
+      text,
+      from: 'admin',
+      delivered: delivered,
+      createdAt: serverTimestamp(),
+      sentBy: (currentUser && currentUser.email) || ''
+    });
+    // Bump replyCount + lastReplyAt on the parent doc (for the badge in the list)
+    try {
+      await updateDoc(doc(db, 'messages', activeChatId), {
+        replyCount: (Number(m.replyCount || 0) + 1),
+        lastReplyAt: serverTimestamp()
+      });
+    } catch (_) { /* non-fatal */ }
+
+    $('chat-input').value = '';
+    if (delivered === true) {
+      status.textContent = 'Reply sent and saved.';
+      status.className = 'chat-status success';
+    } else if (delivered === false) {
+      status.textContent = 'Saved, but email delivery failed. Use "Open in Mail" to send manually.';
+      status.className = 'chat-status error';
+    } else {
+      status.textContent = 'Reply saved. Set up EmailJS in admin.js to deliver by email — or click "Open in Mail".';
+      status.className = 'chat-status muted';
+    }
+  } catch (e) {
+    console.error('Failed to save reply:', e);
+    status.textContent = 'Could not save reply: ' + (e.message || 'error');
+    status.className = 'chat-status error';
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send Reply';
+  }
+}
+
+// Lazy-load EmailJS browser SDK on first send.
+async function ensureEmailJsLoaded(){
+  if (emailjsReady && window.emailjs) return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+    s.async = true;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load EmailJS SDK'));
+    document.head.appendChild(s);
+  });
+  if (window.emailjs && typeof window.emailjs.init === 'function') {
+    window.emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+  }
+  emailjsReady = true;
+}
+
+// Keep mailto link in sync as the admin types
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'chat-input' && activeChatId) {
+    const m = cachedMessages.find(x => x.id === activeChatId);
+    if (m) updateMailtoLink(m);
+  }
 });
 
 // -------- HELPERS --------
