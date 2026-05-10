@@ -55,7 +55,7 @@
 <nav class="navbar" id="navbar" aria-label="Main navigation">
 <div class="section-container">
 <div class="nav-inner">
-<a href="#Home" style="font-size:1.5rem;font-weight:700;color:#FFD700;font-family:Nunito;display:inline-block" aria-label="Mamunur Rashid - Home">Mamunur Rashid</a>
+<a href="#Home" style="font-size:1.5rem;font-weight:700;color:#FFD700;font-family:Nunito;display:inline-block;margin-left:.75rem" aria-label="Mamunur Rashid - Home">Mamunur Rashid</a>
 <div class="nav-links">
 <a href="#Home">Home</a>
 <a href="#about">About</a>
@@ -438,35 +438,68 @@ renderPortfolio(DEFAULT_PORTFOLIO);
   }
 })();
 
-// Contact form
+// Save the message to Firestore so it appears in the admin panel.
+// Returns a promise that resolves to true on success, false on failure.
+async function saveMessageToFirestore(payload){
+  try {
+    var cfgMod = await import('./admin/firebase-config.js');
+    if (!cfgMod || !cfgMod.firebaseConfig || cfgMod.firebaseConfig.apiKey === 'YOUR_API_KEY') return false;
+    var fbApp = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js');
+    var fbStore = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+    var app = fbApp.getApps && fbApp.getApps().length ? fbApp.getApps()[0] : fbApp.initializeApp(cfgMod.firebaseConfig);
+    var db = fbStore.getFirestore(app);
+    await fbStore.addDoc(fbStore.collection(db, 'messages'), {
+      name: payload.name,
+      email: payload.email,
+      message: payload.message,
+      read: false,
+      createdAt: fbStore.serverTimestamp(),
+      userAgent: (navigator && navigator.userAgent) || ''
+    });
+    return true;
+  } catch (e) {
+    console.warn('Could not save message to Firestore:', e);
+    return false;
+  }
+}
+
+// Contact form — sends an email via FormSubmit AND saves to Firestore (admin panel).
 document.getElementById('contact-form').addEventListener('submit', function(e) {
   e.preventDefault();
   var form = this;
   var btn = form.querySelector('button');
   btn.textContent = 'Sending...';
   btn.disabled = true;
-  fetch('https://formsubmit.co/ajax/mamun441998@gmail.com', {
+
+  var payload = {
+    name: form.name.value,
+    email: form.email.value,
+    message: form.message.value
+  };
+
+  var emailRequest = fetch('https://formsubmit.co/ajax/mamun441998@gmail.com', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body: JSON.stringify({
-      name: form.name.value,
-      email: form.email.value,
-      message: form.message.value,
-      _subject: 'New Portfolio Contact from ' + form.name.value
+      name: payload.name,
+      email: payload.email,
+      message: payload.message,
+      _subject: 'New Portfolio Contact from ' + payload.name
     })
-  })
-  .then(function(res) { return res.json(); })
-  .then(function(data) {
-    alert('Thank you! Your message has been sent. I\'ll get back to you soon.');
-    form.reset();
-    btn.textContent = 'Send Message →';
-    btn.disabled = false;
-  })
-  .catch(function() {
-    alert('Oops! Something went wrong. Please try emailing me directly at mamun441998@gmail.com');
-    btn.textContent = 'Send Message →';
-    btn.disabled = false;
-  });
+  }).then(function(res) { return res.json(); });
+
+  Promise.allSettled([emailRequest, saveMessageToFirestore(payload)])
+    .then(function(results){
+      var emailOk = results[0].status === 'fulfilled';
+      if (emailOk || results[1].value === true) {
+        alert('Thank you! Your message has been sent. I\'ll get back to you soon.');
+        form.reset();
+      } else {
+        alert('Oops! Something went wrong. Please try emailing me directly at mamun441998@gmail.com');
+      }
+      btn.textContent = 'Send Message →';
+      btn.disabled = false;
+    });
 });
 </script>
 </body>
