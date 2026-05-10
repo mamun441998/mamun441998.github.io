@@ -1,0 +1,47 @@
+// Recommended Firestore Security Rules for the Mamunur Rashid portfolio.
+//
+// Paste this in the Firebase Console:
+//   Firestore Database -> Rules -> replace the existing rules -> Publish
+//
+// What this protects:
+//   - Anyone can read site/content (so visitors see your portfolio).
+//   - Only the admin (mamun441998@gmail.com) can edit site/content.
+//   - Anyone can SUBMIT a contact-form message (create doc in messages/).
+//     Submissions are size-limited to prevent abuse.
+//   - Only the admin can READ, UPDATE, or DELETE messages.
+//
+// If you change ADMIN_EMAIL in admin/firebase-config.js, update it here too.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.token.email != null
+          && request.auth.token.email.lower() == 'mamun441998@gmail.com';
+    }
+
+    // Public site content — read by everyone, written only by admin.
+    match /site/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Contact-form submissions.
+    match /messages/{msgId} {
+      allow create: if request.resource.data.keys().hasOnly(
+                        ['name','email','message','read','createdAt','userAgent'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() < 200
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() < 200
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() > 0
+                    && request.resource.data.message.size() < 5000
+                    && request.resource.data.read == false;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
