@@ -4,7 +4,7 @@
 */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAIL } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
@@ -109,6 +109,7 @@ onAuthStateChanged(auth, async (user) => {
   renderAll();
   initNav();
   initActions();
+  initMessages();
 });
 
 async function loadContent(){
@@ -148,6 +149,16 @@ async function saveAll(){
 }
 
 // -------- NAV / SECTION SWITCHING --------
+const SECTION_TITLES = {
+  hero: 'Hero Section',
+  about: 'About Section',
+  services: 'Services Section',
+  portfolio: 'Portfolio Section',
+  whyme: 'Why Me Section',
+  contact: 'Contact Section',
+  messages: 'Messages'
+};
+
 function initNav(){
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -155,7 +166,7 @@ function initNav(){
       const section = link.dataset.section;
       document.querySelectorAll('.nav-link').forEach(l => l.classList.toggle('active', l === link));
       document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.dataset.section === section));
-      $('section-title').textContent = link.textContent.trim() + (section === 'whyme' ? ' Section' : ' Section');
+      $('section-title').textContent = SECTION_TITLES[section] || (section.charAt(0).toUpperCase() + section.slice(1));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
@@ -389,6 +400,117 @@ function openProjectDrawer(idx){
     renderPortfolio();
   }, isNew ? null : () => { state.portfolio.splice(idx,1); renderPortfolio(); }, isNew ? 'Add project' : 'Edit project');
 }
+
+// -------- MESSAGES (contact form submissions) --------
+let messagesUnsub = null;
+let cachedMessages = [];
+
+function initMessages(){
+  const list = $('messages-list');
+  if (!list) return;
+
+  // Live-update from Firestore — newest first.
+  try {
+    const q = query(collection(db, 'messages'), orderBy('createdAt', 'desc'));
+    if (messagesUnsub) messagesUnsub();
+    messagesUnsub = onSnapshot(q, (snap) => {
+      cachedMessages = [];
+      snap.forEach(d => cachedMessages.push({ id: d.id, ...d.data() }));
+      renderMessages();
+    }, (err) => {
+      console.error('messages onSnapshot error:', err);
+      list.innerHTML = '<div class="alert alert-error">Could not load messages: ' + escapeHtml(err.message || 'permission-denied') + '. Check Firestore security rules — admin must be allowed to read the "messages" collection.</div>';
+    });
+  } catch (e) {
+    console.error(e);
+    list.innerHTML = '<div class="alert alert-error">Failed to subscribe to messages: ' + escapeHtml(e.message) + '</div>';
+  }
+
+  const refreshBtn = $('refresh-messages-btn');
+  if (refreshBtn) refreshBtn.addEventListener('click', () => initMessages());
+}
+
+function renderMessages(){
+  const list = $('messages-list');
+  const badge = $('messages-badge');
+  if (!list) return;
+
+  const unreadCount = cachedMessages.filter(m => !m.read).length;
+  if (badge) {
+    badge.textContent = String(unreadCount);
+    badge.classList.toggle('hidden', unreadCount === 0);
+  }
+
+  if (!cachedMessages.length){
+    list.innerHTML = '<div class="muted center" style="padding:1.5rem">No messages yet. When visitors submit the contact form, they will appear here.</div>';
+    return;
+  }
+
+  list.innerHTML = cachedMessages.map(m => {
+    const when = formatMessageDate(m.createdAt);
+    const safeEmail = escapeAttr(m.email || '');
+    const subject = encodeURIComponent('Re: your message on Mamunur Rashid portfolio');
+    return `
+      <div class="message-card ${m.read ? '' : 'unread'}">
+        <div class="message-head">
+          <div>
+            <div class="message-name">${escapeHtml(m.name || '(no name)')}</div>
+            <div class="message-email"><a href="mailto:${safeEmail}?subject=${subject}">${escapeHtml(m.email || '')}</a></div>
+          </div>
+          <div class="message-date">${escapeHtml(when)}</div>
+        </div>
+        <div class="message-body">${escapeHtml(m.message || '')}</div>
+        <div class="message-actions">
+          <a class="btn btn-primary btn-sm" href="mailto:${safeEmail}?subject=${subject}">Reply</a>
+          ${m.read
+            ? `<button class="btn btn-secondary btn-sm" data-mark-unread="${m.id}">Mark as unread</button>`
+            : `<button class="btn btn-secondary btn-sm" data-mark-read="${m.id}">Mark as read</button>`}
+          <button class="btn btn-danger btn-sm" data-delete-message="${m.id}">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-mark-read]').forEach(b => b.addEventListener('click', () => setMessageRead(b.dataset.markRead, true)));
+  list.querySelectorAll('[data-mark-unread]').forEach(b => b.addEventListener('click', () => setMessageRead(b.dataset.markUnread, false)));
+  list.querySelectorAll('[data-delete-message]').forEach(b => b.addEventListener('click', () => deleteMessage(b.dataset.deleteMessage)));
+}
+
+async function setMessageRead(id, read){
+  try {
+    await updateDoc(doc(db, 'messages', id), { read });
+  } catch (e) {
+    showAlert('Could not update message: ' + (e.message || 'error'), 'error');
+  }
+}
+
+async function deleteMessage(id){
+  if (!confirm('Delete this message permanently?')) return;
+  try {
+    await deleteDoc(doc(db, 'messages', id));
+  } catch (e) {
+    showAlert('Could not delete message: ' + (e.message || 'error'), 'error');
+  }
+}
+
+function formatMessageDate(ts){
+  if (!ts) return 'Just now';
+  // Firestore Timestamp has .toDate(); raw values may be Date or number.
+  let d;
+  if (typeof ts.toDate === 'function') d = ts.toDate();
+  else if (ts instanceof Date) d = ts;
+  else if (typeof ts === 'number') d = new Date(ts);
+  else return 'Just now';
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+// Auto mark-as-read when visiting the Messages section
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('.nav-link[data-section="messages"]');
+  if (!link) return;
+  setTimeout(() => {
+    cachedMessages.filter(m => !m.read).forEach(m => setMessageRead(m.id, true));
+  }, 1500);
+});
 
 // -------- HELPERS --------
 function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
