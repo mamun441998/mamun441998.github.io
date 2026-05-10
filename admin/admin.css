@@ -110,3 +110,17 @@ img{max-width:100%;display:block}
 .gap{display:flex;gap:.5rem;flex-wrap:wrap}
 .hidden{display:none!important}
 hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
+
+/* MESSAGES */
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:1.4rem;height:1.4rem;padding:0 .4rem;margin-left:auto;background:var(--danger);color:#fff;font-size:.7rem;font-weight:700;border-radius:9999px;line-height:1}
+.messages-list{display:flex;flex-direction:column;gap:.75rem}
+.message-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;display:flex;flex-direction:column;gap:.5rem;position:relative}
+.message-card.unread{border-color:var(--gold);box-shadow:0 0 0 1px rgba(255,215,0,.25)}
+.message-card.unread::before{content:"NEW";position:absolute;top:.6rem;right:.75rem;background:var(--gold);color:#000;font-size:.65rem;font-weight:800;padding:.15rem .45rem;border-radius:9999px;letter-spacing:.5px}
+.message-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:.5rem;padding-right:3.5rem}
+.message-name{font-weight:700;color:var(--text);font-size:1rem}
+.message-email{font-size:.85rem;color:var(--gold);word-break:break-all}
+.message-email a{color:inherit}
+.message-date{font-size:.75rem;color:var(--text-muted);white-space:nowrap}
+.message-body{color:var(--text);font-size:.9rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;padding:.5rem 0;border-top:1px solid var(--border)}
+.message-actions{display:flex;gap:.4rem;flex-wrap:wrap}
