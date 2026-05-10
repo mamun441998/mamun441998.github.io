@@ -218,6 +218,7 @@ display:inline-flex;align-items:center;justify-content:center;padding:10px 28px;
 .social-instagram:hover{background:#E4405F;border-color:#E4405F}
 .social-email:hover{background:hsl(38,92%,50%);border-color:hsl(38,92%,50%)}
 .social-whatsapp:hover{background:#25D366;border-color:#25D366}
+.social-upwork:hover{background:#14A800;border-color:#14A800}
 .animate-on-scroll{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
 .animate-on-scroll.animate-in{opacity:1;transform:translateY(0)}
 
@@ -261,6 +262,7 @@ textarea.input-field{resize:none}
 .footer-social[aria-label="Instagram"]:hover{border-color:#E1306C;background:linear-gradient(45deg,#F58529,#DD2A7B,#8134AF);color:#fff}
 .footer-social[aria-label="GitHub"]:hover{border-color:#fff;background:#fff;color:#181717}
 .footer-social[aria-label="Email"]:hover{border-color:#EA4335;background:#EA4335;color:#fff}
+.footer-social[aria-label="Upwork"]:hover{border-color:#14A800;background:#14A800;color:#fff}
 .footer-social svg{width:1rem;height:1rem}
 .footer-heading{font-weight:600;font-size:1.125rem;margin-bottom:1rem}
 .footer-links{list-style:none;display:flex;flex-direction:column;gap:.75rem;padding:0;margin:0}
