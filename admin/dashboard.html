@@ -48,6 +48,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
         Contact
       </a></li>
+      <li><a href="#messages" class="nav-link" data-section="messages">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Messages <span id="messages-badge" class="nav-badge hidden">0</span>
+      </a></li>
     </ul>
     <div class="sidebar-bottom">
       <div class="who" id="who-am-i">—</div>
@@ -138,6 +142,20 @@
           <h2 style="margin:0">Reason cards (3)</h2>
         </div>
         <div id="why-reasons"></div>
+      </div>
+    </div>
+
+    <!-- MESSAGES SECTION -->
+    <div class="section" data-section="messages">
+      <div class="panel">
+        <div class="row between">
+          <h2 style="margin:0">Messages from Contact Form</h2>
+          <button class="btn btn-secondary btn-sm" id="refresh-messages-btn">Refresh</button>
+        </div>
+        <p class="help">Messages submitted by visitors via the homepage contact form. Newest first.</p>
+        <div id="messages-list" class="messages-list">
+          <div class="muted center" style="padding:1rem">Loading messages...</div>
+        </div>
       </div>
     </div>
 
