@@ -12,9 +12,9 @@ import { firebaseConfig, ADMIN_EMAIL } from "./firebase-config.js";
 // While these are blank, the chat panel still works and saves replies to Firestore;
 // the "Open in Mail" button gives you a one-click mailto fallback.
 const EMAILJS_CONFIG = {
-  publicKey: "abcDEF123xyz",       // ← from EmailJS Account
-  serviceId: "service_abc1234",    // ← from EmailJS Email Services
-  templateId: "template_xyz5678"   // ← from EmailJS Email Templates
+  publicKey: "gCq8Q_2izGyQo5XV-oKjS",       // ← from EmailJS Account
+  serviceId: "service_9idg2ml",    // ← from EmailJS Email Services
+  templateId: "template_ix954la"   // ← from EmailJS Email Templates
 };
 
 
