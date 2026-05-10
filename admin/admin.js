@@ -13,7 +13,7 @@ import { firebaseConfig, ADMIN_EMAIL } from "./firebase-config.js";
 // the "Open in Mail" button gives you a one-click mailto fallback.
 const EMAILJS_CONFIG = {
   publicKey: "gCq8Q_2izGyQo5XV-oKjS",
-  serviceId: "service_xxxxxxx",
+  serviceId: "service_9idg2ml",
   templateId: "template_ix954la"
 };
 
