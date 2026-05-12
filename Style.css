@@ -39,9 +39,9 @@ img{max-width:100%;display:block;height:auto}
 .navbar.scrolled{background:hsl(var(--hero-bg)/.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.1)}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;height:5rem;padding-top: 10px;}
 .brand-logo{display:inline-flex;align-items:center;line-height:0;margin-left:.75rem;flex-shrink:0}
-.brand-logo img{display:block;height:100px;width:auto;max-width:100%}
+.brand-logo img{display:block;height:160px;width:auto;max-width:100%}
 .brand-logo--footer{margin-left:0;margin-bottom:1rem}
-.brand-logo--footer img{height:108px}
+.brand-logo--footer img{height:160px}
 @media(max-width:768px){.brand-logo img{height:72px}.brand-logo--footer img{height:80px}}
 @media(max-width:480px){.brand-logo img{height:56px}.brand-logo--footer img{height:64px}}
 .nav-links{display:none;align-items:center;gap:1.25rem;text-align:center}
